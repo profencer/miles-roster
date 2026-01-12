@@ -42,13 +42,13 @@ export function WarbandList() {
   return (
     <div className="page">
       <div className="container">
-        <div className="flex justify-between items-center mb-xl">
+        <div className="page-header mb-xl">
           <h1>Your Warbands</h1>
           <button
             className="btn btn-primary"
             onClick={() => setIsCreateModalOpen(true)}
           >
-            + Create Warband
+            + New Warband
           </button>
         </div>
 

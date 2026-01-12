@@ -367,7 +367,7 @@ export function CharacterCreationWizard({
               Roll to determine your {backgroundData?.name}'s capabilities.
             </p>
             
-            <div className="flex items-center gap-lg mb-lg">
+            <div className="roll-container">
               <DiceRoll
                 onRoll={handleCapabilityRoll}
                 label="Roll d20"
@@ -375,7 +375,7 @@ export function CharacterCreationWizard({
                 currentValue={capabilityRoll}
               />
               {capabilityResult && (
-                <div className="roll-result" style={{ flex: 1 }}>
+                <div className="roll-result" style={{ flex: 1, marginBottom: 0 }}>
                   <div className="roll-result-value">{capabilityRoll}</div>
                   <div className="roll-result-text">{capabilityResult}</div>
                 </div>
@@ -423,7 +423,7 @@ export function CharacterCreationWizard({
               Roll to determine your character's mental fortitude and experience.
             </p>
             
-            <div className="flex items-center gap-lg mb-lg">
+            <div className="roll-container">
               <DiceRoll
                 onRoll={handleMentalityRoll}
                 label="Roll d20"
@@ -431,7 +431,7 @@ export function CharacterCreationWizard({
                 currentValue={mentalityRoll}
               />
               {mentalityResult && (
-                <div className="roll-result" style={{ flex: 1 }}>
+                <div className="roll-result" style={{ flex: 1, marginBottom: 0 }}>
                   <div className="roll-result-value">{mentalityRoll}</div>
                   <div className="roll-result-text">{mentalityResult}</div>
                 </div>
@@ -479,7 +479,7 @@ export function CharacterCreationWizard({
               Roll to determine your starting possessions.
             </p>
             
-            <div className="flex items-center gap-lg mb-lg">
+            <div className="roll-container">
               <DiceRoll
                 onRoll={handlePossessionsRoll}
                 label="Roll d20"
@@ -487,7 +487,7 @@ export function CharacterCreationWizard({
                 currentValue={possessionsRoll}
               />
               {possessionsResult && (
-                <div className="roll-result" style={{ flex: 1 }}>
+                <div className="roll-result" style={{ flex: 1, marginBottom: 0 }}>
                   <div className="roll-result-value">{possessionsRoll}</div>
                   <div className="roll-result-text">{possessionsResult}</div>
                 </div>
@@ -535,7 +535,7 @@ export function CharacterCreationWizard({
               Roll to determine your character's training and experience.
             </p>
             
-            <div className="flex items-center gap-lg mb-lg">
+            <div className="roll-container">
               <DiceRoll
                 onRoll={handleTrainingRoll}
                 label="Roll d20"
@@ -543,7 +543,7 @@ export function CharacterCreationWizard({
                 currentValue={trainingRoll}
               />
               {trainingResult && (
-                <div className="roll-result" style={{ flex: 1 }}>
+                <div className="roll-result" style={{ flex: 1, marginBottom: 0 }}>
                   <div className="roll-result-value">{trainingRoll}</div>
                   <div className="roll-result-text">{trainingResult}</div>
                 </div>
@@ -996,7 +996,7 @@ export function CharacterCreationWizard({
 
   return (
     <div className="modal-overlay">
-      <div className="modal" style={{ maxWidth: '800px' }}>
+      <div className="modal modal-wizard">
         <div className="modal-header">
           <h3 className="modal-title">
             Create {characterType === 'hero' ? 'Hero' : 'Follower'}

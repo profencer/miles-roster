@@ -91,8 +91,8 @@ export function WarbandRoster() {
         </div>
 
         {/* Header */}
-        <div className="flex justify-between items-center mb-xl">
-          <div>
+        <div className="page-header mb-xl">
+          <div className="page-header-text">
             <h1>{warband.name}</h1>
             <p className="text-secondary">
               {warband.heroes.length} Heroes • {warband.followers.length} Followers
@@ -136,7 +136,7 @@ export function WarbandRoster() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-md mb-xl">
+        <div className="action-buttons mb-xl">
           <button
             className="btn btn-primary"
             onClick={() => startCreateCharacter('hero')}
@@ -154,7 +154,7 @@ export function WarbandRoster() {
             to={`/warband/${warband.id}/export`}
             className="btn btn-secondary"
           >
-            Export Roster
+            Export
           </Link>
         </div>
 
