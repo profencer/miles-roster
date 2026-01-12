@@ -7,7 +7,7 @@ export function Header() {
     <header className="app-header">
       <div className="app-header-content">
         <Link to="/" className="app-logo">
-          ⚔ Five Leagues
+          ⚔ Five Leagues Roster
         </Link>
         <nav className="app-nav">
           <Link 

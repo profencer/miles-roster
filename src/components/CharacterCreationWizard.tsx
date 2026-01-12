@@ -96,7 +96,6 @@ export function CharacterCreationWizard({
     characterType === 'follower' ? 'Human' : null
   );
   const [selectedBackground, setSelectedBackground] = useState<BackgroundName | null>(null);
-  const [bringsEquipment, setBringsEquipment] = useState(false);
   
   // Roll results
   const [capabilityRoll, setCapabilityRoll] = useState<number | null>(null);
