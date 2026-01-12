@@ -32,6 +32,7 @@ export function ExportRoster() {
       'Combat Skill',
       'Speed',
       'Toughness',
+      'Armor',
       'Will',
       'Luck',
       'XP',
@@ -40,22 +41,35 @@ export function ExportRoster() {
       'Equipment',
     ];
 
-    const rows = [...warband.heroes, ...warband.followers].map((char) => [
-      char.name,
-      char.characterType,
-      char.origin,
-      char.background,
-      char.stats.agility.toString(),
-      char.stats.combatSkill.toString(),
-      `${char.stats.speedBase}/${char.stats.dashBonus}`,
-      char.stats.toughness.toString(),
-      char.stats.will.toString(),
-      char.stats.luck.toString(),
-      char.xp.toString(),
-      char.gold.toString(),
-      char.skills.map((s) => s.split('–')[0].trim()).join('; '),
-      char.equipment.map((e) => e.name).join('; '),
-    ]);
+    const rows = [...warband.heroes, ...warband.followers].map((char) => {
+      // Calculate armor score
+      let armorScore = 0;
+      char.equipment.forEach((item) => {
+        if (item.name === 'Partial armor') armorScore += 1;
+        if (item.name === 'Light armor') armorScore += 2;
+        if (item.name === 'Full armor') armorScore += 3;
+        if (item.name === 'Helmet') armorScore += 1;
+        if (item.name === 'Shield') armorScore += 1;
+      });
+      
+      return [
+        char.name,
+        char.characterType,
+        char.origin,
+        char.characterType === 'hero' ? char.background : '-',
+        char.stats.agility.toString(),
+        char.stats.combatSkill.toString(),
+        `${char.stats.speedBase}/${char.stats.dashBonus}`,
+        char.stats.toughness.toString(),
+        armorScore.toString(),
+        char.stats.will.toString(),
+        char.stats.luck.toString(),
+        char.xp.toString(),
+        char.gold.toString(),
+        char.skills.map((s) => s.split('–')[0].trim()).join('; '),
+        char.equipment.map((e) => e.name).join('; '),
+      ];
+    });
 
     const csvContent = [
       `Warband: ${warband.name}`,
@@ -131,14 +145,27 @@ export function ExportRoster() {
 
       // Stats row
       doc.setFontSize(9);
+      // Calculate armor score
+      let armorScore = 0;
+      char.equipment.forEach((item) => {
+        if (item.name === 'Partial armor') armorScore += 1;
+        if (item.name === 'Light armor') armorScore += 2;
+        if (item.name === 'Full armor') armorScore += 3;
+        if (item.name === 'Helmet') armorScore += 1;
+        if (item.name === 'Shield') armorScore += 1;
+      });
+      
       const stats = [
         `AGI: ${char.stats.agility}`,
-        `CS: ${char.stats.combatSkill}`,
+        `Combat: ${char.stats.combatSkill}`,
         `SPD: ${char.stats.speedBase}/${char.stats.dashBonus}`,
         `TGH: ${char.stats.toughness}`,
-        `WILL: ${char.stats.will}`,
-        `LUCK: ${char.stats.luck}`,
+        `Armor: ${armorScore}`,
       ];
+      if (char.characterType === 'hero') {
+        stats.push(`WILL: ${char.stats.will}`);
+        stats.push(`LUCK: ${char.stats.luck}`);
+      }
       if (char.isMystic) {
         stats.push(`CAST: ${char.stats.casting}`);
       }
@@ -275,37 +302,51 @@ export function ExportRoster() {
                   <th>Origin</th>
                   <th>Background</th>
                   <th>AGI</th>
-                  <th>CS</th>
+                  <th>Combat</th>
                   <th>SPD</th>
                   <th>TGH</th>
+                  <th>Armor</th>
                   <th>XP</th>
                   <th>Gold</th>
                 </tr>
               </thead>
               <tbody>
-                {allCharacters.map((char) => (
-                  <tr key={char.id}>
-                    <td>
-                      <strong>{char.name}</strong>
-                    </td>
-                    <td>
-                      <span className={`tag ${char.characterType === 'hero' ? 'tag-gold' : ''}`}>
-                        {char.characterType}
-                      </span>
-                    </td>
-                    <td>{char.origin}</td>
-                    <td>{char.background}</td>
-                    <td>{char.stats.agility}</td>
-                    <td>{char.stats.combatSkill}</td>
-                    <td>{char.stats.speedBase}/{char.stats.dashBonus}</td>
-                    <td>{char.stats.toughness}</td>
-                    <td>{char.xp}</td>
-                    <td>{char.gold}</td>
-                  </tr>
-                ))}
+                {allCharacters.map((char) => {
+                  // Calculate armor score
+                  let armorScore = 0;
+                  char.equipment.forEach((item) => {
+                    if (item.name === 'Partial armor') armorScore += 1;
+                    if (item.name === 'Light armor') armorScore += 2;
+                    if (item.name === 'Full armor') armorScore += 3;
+                    if (item.name === 'Helmet') armorScore += 1;
+                    if (item.name === 'Shield') armorScore += 1;
+                  });
+                  
+                  return (
+                    <tr key={char.id}>
+                      <td>
+                        <strong>{char.name}</strong>
+                      </td>
+                      <td>
+                        <span className={`tag ${char.characterType === 'hero' ? 'tag-gold' : ''}`}>
+                          {char.characterType}
+                        </span>
+                      </td>
+                      <td>{char.origin}</td>
+                      <td>{char.characterType === 'hero' ? char.background : '-'}</td>
+                      <td>{char.stats.agility}</td>
+                      <td>{char.stats.combatSkill}</td>
+                      <td>{char.stats.speedBase}/{char.stats.dashBonus}</td>
+                      <td>{char.stats.toughness}</td>
+                      <td>{armorScore}</td>
+                      <td>{char.xp}</td>
+                      <td>{char.gold}</td>
+                    </tr>
+                  );
+                })}
                 {allCharacters.length === 0 && (
                   <tr>
-                    <td colSpan={10} className="text-center text-muted">
+                    <td colSpan={11} className="text-center text-muted">
                       No characters in this warband yet.
                     </td>
                   </tr>

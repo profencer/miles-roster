@@ -512,7 +512,8 @@ a:hover {
   max-width: 600px;
   width: 100%;
   max-height: 90vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   box-shadow: var(--shadow-lg);
   animation: slideUp 0.3s ease;
 }
@@ -524,6 +525,7 @@ a:hover {
   padding: var(--space-lg);
   border-bottom: 1px solid var(--bg-light);
   background: linear-gradient(180deg, var(--bg-light) 0%, var(--bg-medium) 100%);
+  flex-shrink: 0;
 }
 
 .modal-title {
@@ -535,6 +537,9 @@ a:hover {
 
 .modal-body {
   padding: var(--space-lg);
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .modal-footer {
@@ -544,6 +549,7 @@ a:hover {
   padding: var(--space-lg);
   border-top: 1px solid var(--bg-light);
   background: var(--bg-dark);
+  flex-shrink: 0;
 }
 
 @keyframes fadeIn {

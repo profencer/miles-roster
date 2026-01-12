@@ -45,7 +45,7 @@ type WizardStep =
   | 'equipment'
   | 'summary';
 
-const STEPS: WizardStep[] = [
+const HERO_STEPS: WizardStep[] = [
   'name',
   'origin',
   'background',
@@ -54,6 +54,13 @@ const STEPS: WizardStep[] = [
   'possessions',
   'training',
   'skills',
+  'equipment',
+  'summary',
+];
+
+// Followers have simplified creation - only Human, no background rolls
+const FOLLOWER_STEPS: WizardStep[] = [
+  'name',
   'equipment',
   'summary',
 ];
@@ -77,11 +84,17 @@ export function CharacterCreationWizard({
   onComplete,
   onCancel,
 }: CharacterCreationWizardProps) {
+  // Get the appropriate steps based on character type
+  const STEPS = characterType === 'hero' ? HERO_STEPS : FOLLOWER_STEPS;
+  
   const [currentStep, setCurrentStep] = useState<WizardStep>('name');
   
   // Character data
   const [name, setName] = useState('');
-  const [selectedOrigin, setSelectedOrigin] = useState<Origin | null>(null);
+  // Followers are always Human
+  const [selectedOrigin, setSelectedOrigin] = useState<Origin | null>(
+    characterType === 'follower' ? 'Human' : null
+  );
   const [selectedBackground, setSelectedBackground] = useState<BackgroundName | null>(null);
   const [bringsEquipment, setBringsEquipment] = useState(false);
   
@@ -226,6 +239,19 @@ export function CharacterCreationWizard({
     return stats;
   };
 
+  // Calculate armor score from equipment
+  const calculateArmorScore = (): number => {
+    let score = 0;
+    selectedEquipment.forEach((item) => {
+      if (item.name === 'Partial armor') score += 1;
+      if (item.name === 'Light armor') score += 2;
+      if (item.name === 'Full armor') score += 3;
+      if (item.name === 'Helmet') score += 1;
+      if (item.name === 'Shield') score += 1;
+    });
+    return score;
+  };
+
   // Create character
   const handleCreateCharacter = () => {
     const finalStats = computeFinalStats();
@@ -233,8 +259,8 @@ export function CharacterCreationWizard({
     // Build equipment list
     const finalEquipment: Equipment[] = [...selectedEquipment];
     
-    // Add item from possessions if any
-    if (itemFromPossessions) {
+    // Add item from possessions if any (only for heroes)
+    if (itemFromPossessions && characterType === 'hero') {
       finalEquipment.push({
         name: itemFromPossessions,
         type: itemFromPossessions.toLowerCase().includes('weapon') ? 'melee' : 'misc',
@@ -243,17 +269,18 @@ export function CharacterCreationWizard({
     
     const character: Character = {
       id: uuidv4(),
-      name: name.trim() || 'Unnamed Hero',
+      name: name.trim() || (characterType === 'hero' ? 'Unnamed Hero' : 'Unnamed Follower'),
       origin: selectedOrigin!,
-      background: selectedBackground!,
+      // Followers don't have a background - use 'Townsfolk' as placeholder for type compatibility
+      background: characterType === 'hero' ? selectedBackground! : 'Townsfolk',
       characterType,
-      isMystic,
+      isMystic: characterType === 'hero' && isMystic,
       stats: finalStats,
-      skills: skillRolls.map((sr) => sr.skill),
+      skills: characterType === 'hero' ? skillRolls.map((sr) => sr.skill) : [],
       equipment: finalEquipment,
-      xp: bonusXP,
-      gold,
-      notes: '',
+      xp: characterType === 'hero' ? bonusXP : 0,
+      gold: characterType === 'hero' ? gold : 0,
+      notes: characterType === 'follower' ? 'Follower - simplified stats' : '',
     };
     
     addCharacterToWarband(warbandId, character);
@@ -279,15 +306,11 @@ export function CharacterCreationWizard({
               />
             </div>
             {characterType === 'follower' && (
-              <div className="form-group">
-                <label className="form-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={bringsEquipment}
-                    onChange={(e) => setBringsEquipment(e.target.checked)}
-                  />
-                  <span>This recruit brings equipment</span>
-                </label>
+              <div className="card mt-lg">
+                <p className="text-muted">
+                  <strong>Note:</strong> Followers are always Human and have simplified stats. 
+                  They don't receive background bonuses - only basic racial traits apply.
+                </p>
               </div>
             )}
           </div>
@@ -604,117 +627,201 @@ export function CharacterCreationWizard({
         );
 
       case 'equipment':
+        // Calculate current selections for limit enforcement
+        const qualityWeaponsSelected = selectedEquipment.filter(
+          (e) => equipmentData.heroStarterKit.qualityWeapons.find((w) => w.name === e.name)
+        ).length;
+        const basicWeaponsSelected = selectedEquipment.filter(
+          (e) => equipmentData.heroStarterKit.basicWeapons.find((w) => w.name === e.name)
+        ).length;
+        const bodyArmorSelected = selectedEquipment.filter(
+          (e) => ['Partial armor', 'Light armor', 'Full armor'].includes(e.name)
+        ).length;
+        const helmetsSelected = selectedEquipment.filter(
+          (e) => e.name === 'Helmet'
+        ).length;
+        const shieldsSelected = selectedEquipment.filter(
+          (e) => e.name === 'Shield'
+        ).length;
+        
+        // Follower limits
+        const followerWeaponsSelected = selectedEquipment.filter(
+          (e) => e.type === 'melee' || e.type === 'ranged'
+        ).length;
+        const followerArmorSelected = selectedEquipment.filter(
+          (e) => e.type === 'armor'
+        ).length;
+
         return (
           <div>
             <h3 className="mb-lg">Equipment</h3>
             <p className="text-muted mb-lg">
               {characterType === 'hero'
                 ? 'As a hero, select your starting equipment from the hero starter kit.'
-                : 'Select any equipment this follower brings.'}
+                : 'Select equipment this follower brings (limited selection).'}
             </p>
 
             {characterType === 'hero' && (
               <>
                 <h4 className="mb-md">Quality Weapons (select up to 2)</h4>
+                <p className="text-small text-muted mb-md">Selected: {qualityWeaponsSelected}/2</p>
                 <div className="selection-grid mb-lg">
-                  {equipmentData.heroStarterKit.qualityWeapons.map((weapon) => (
-                    <div
-                      key={weapon.name}
-                      className={`selection-card ${
-                        selectedEquipment.find((e) => e.name === weapon.name)
-                          ? 'selected'
-                          : ''
-                      }`}
-                      onClick={() => {
-                        const qualitySelected = selectedEquipment.filter(
-                          (e) => equipmentData.heroStarterKit.qualityWeapons.find((w) => w.name === e.name)
-                        ).length;
-                        const isSelected = selectedEquipment.find((e) => e.name === weapon.name);
-                        if (!isSelected && qualitySelected >= 2) return;
-                        toggleEquipment(weapon);
-                      }}
-                    >
-                      <div className="selection-card-title">{weapon.name}</div>
-                      <div className="selection-card-desc">{weapon.type}</div>
-                    </div>
-                  ))}
+                  {equipmentData.heroStarterKit.qualityWeapons.map((weapon) => {
+                    const isSelected = selectedEquipment.find((e) => e.name === weapon.name);
+                    const isDisabled = !isSelected && qualityWeaponsSelected >= 2;
+                    return (
+                      <div
+                        key={weapon.name}
+                        className={`selection-card ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
+                        onClick={() => {
+                          if (isDisabled) return;
+                          toggleEquipment(weapon);
+                        }}
+                        style={isDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                      >
+                        <div className="selection-card-title">{weapon.name}</div>
+                        <div className="selection-card-desc">{weapon.type}</div>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <h4 className="mb-md">Basic Weapons (select up to 2)</h4>
+                <p className="text-small text-muted mb-md">Selected: {basicWeaponsSelected}/2</p>
                 <div className="selection-grid mb-lg">
-                  {equipmentData.heroStarterKit.basicWeapons.map((weapon) => (
-                    <div
-                      key={weapon.name}
-                      className={`selection-card ${
-                        selectedEquipment.find((e) => e.name === weapon.name)
-                          ? 'selected'
-                          : ''
-                      }`}
-                      onClick={() => {
-                        const basicSelected = selectedEquipment.filter(
-                          (e) => equipmentData.heroStarterKit.basicWeapons.find((w) => w.name === e.name)
-                        ).length;
-                        const isSelected = selectedEquipment.find((e) => e.name === weapon.name);
-                        if (!isSelected && basicSelected >= 2) return;
-                        toggleEquipment(weapon);
-                      }}
-                    >
-                      <div className="selection-card-title">{weapon.name}</div>
-                      <div className="selection-card-desc">{weapon.type}</div>
-                    </div>
-                  ))}
+                  {equipmentData.heroStarterKit.basicWeapons.map((weapon) => {
+                    const isSelected = selectedEquipment.find((e) => e.name === weapon.name);
+                    const isDisabled = !isSelected && basicWeaponsSelected >= 2;
+                    return (
+                      <div
+                        key={weapon.name}
+                        className={`selection-card ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
+                        onClick={() => {
+                          if (isDisabled) return;
+                          toggleEquipment(weapon);
+                        }}
+                        style={isDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                      >
+                        <div className="selection-card-title">{weapon.name}</div>
+                        <div className="selection-card-desc">{weapon.type}</div>
+                      </div>
+                    );
+                  })}
                 </div>
 
-                <h4 className="mb-md">Armor</h4>
+                <h4 className="mb-md">Body Armor (select up to 1)</h4>
+                <p className="text-small text-muted mb-md">Selected: {bodyArmorSelected}/1</p>
+                <div className="selection-grid mb-lg">
+                  {equipmentData.armorItems.filter(a => ['Partial armor', 'Light armor', 'Full armor'].includes(a.name)).map((armor) => {
+                    const isSelected = selectedEquipment.find((e) => e.name === armor.name);
+                    const isDisabled = !isSelected && bodyArmorSelected >= 1;
+                    return (
+                      <div
+                        key={armor.name}
+                        className={`selection-card ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
+                        onClick={() => {
+                          if (isDisabled) return;
+                          toggleEquipment(armor);
+                        }}
+                        style={isDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                      >
+                        <div className="selection-card-title">{armor.name}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <h4 className="mb-md">Accessories</h4>
                 <div className="selection-grid">
-                  {equipmentData.armorItems.map((armor) => (
-                    <div
-                      key={armor.name}
-                      className={`selection-card ${
-                        selectedEquipment.find((e) => e.name === armor.name)
-                          ? 'selected'
-                          : ''
-                      }`}
-                      onClick={() => toggleEquipment(armor)}
-                    >
-                      <div className="selection-card-title">{armor.name}</div>
-                    </div>
-                  ))}
+                  {/* Helmet - max 1 */}
+                  {equipmentData.armorItems.filter(a => a.name === 'Helmet').map((armor) => {
+                    const isSelected = selectedEquipment.find((e) => e.name === armor.name);
+                    const isDisabled = !isSelected && helmetsSelected >= 1;
+                    return (
+                      <div
+                        key={armor.name}
+                        className={`selection-card ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
+                        onClick={() => {
+                          if (isDisabled) return;
+                          toggleEquipment(armor);
+                        }}
+                        style={isDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                      >
+                        <div className="selection-card-title">{armor.name}</div>
+                        <div className="selection-card-desc">Max: 1</div>
+                      </div>
+                    );
+                  })}
+                  {/* Shield - max 1 */}
+                  {equipmentData.armorItems.filter(a => a.name === 'Shield').map((armor) => {
+                    const isSelected = selectedEquipment.find((e) => e.name === armor.name);
+                    const isDisabled = !isSelected && shieldsSelected >= 1;
+                    return (
+                      <div
+                        key={armor.name}
+                        className={`selection-card ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
+                        onClick={() => {
+                          if (isDisabled) return;
+                          toggleEquipment(armor);
+                        }}
+                        style={isDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                      >
+                        <div className="selection-card-title">{armor.name}</div>
+                        <div className="selection-card-desc">Max: 1</div>
+                      </div>
+                    );
+                  })}
                 </div>
               </>
             )}
 
-            {characterType === 'follower' && bringsEquipment && (
+            {characterType === 'follower' && (
               <>
-                <h4 className="mb-md">Available Equipment</h4>
+                <h4 className="mb-md">Weapons (select up to 1)</h4>
+                <p className="text-small text-muted mb-md">Selected: {followerWeaponsSelected}/1</p>
+                <div className="selection-grid mb-lg">
+                  {equipmentData.heroStarterKit.basicWeapons.map((weapon) => {
+                    const isSelected = selectedEquipment.find((e) => e.name === weapon.name);
+                    const isDisabled = !isSelected && followerWeaponsSelected >= 1;
+                    return (
+                      <div
+                        key={weapon.name}
+                        className={`selection-card ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
+                        onClick={() => {
+                          if (isDisabled) return;
+                          toggleEquipment(weapon);
+                        }}
+                        style={isDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                      >
+                        <div className="selection-card-title">{weapon.name}</div>
+                        <div className="selection-card-desc">{weapon.type}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <h4 className="mb-md">Armor (select up to 1)</h4>
+                <p className="text-small text-muted mb-md">Selected: {followerArmorSelected}/1</p>
                 <div className="selection-grid">
-                  {[
-                    ...equipmentData.heroStarterKit.basicWeapons,
-                    ...equipmentData.armorItems.slice(0, 2),
-                  ].map((item) => (
-                    <div
-                      key={item.name}
-                      className={`selection-card ${
-                        selectedEquipment.find((e) => e.name === item.name)
-                          ? 'selected'
-                          : ''
-                      }`}
-                      onClick={() => toggleEquipment(item)}
-                    >
-                      <div className="selection-card-title">{item.name}</div>
-                      <div className="selection-card-desc">{item.type}</div>
-                    </div>
-                  ))}
+                  {equipmentData.armorItems.filter(a => ['Partial armor', 'Light armor'].includes(a.name)).map((armor) => {
+                    const isSelected = selectedEquipment.find((e) => e.name === armor.name);
+                    const isDisabled = !isSelected && followerArmorSelected >= 1;
+                    return (
+                      <div
+                        key={armor.name}
+                        className={`selection-card ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
+                        onClick={() => {
+                          if (isDisabled) return;
+                          toggleEquipment(armor);
+                        }}
+                        style={isDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                      >
+                        <div className="selection-card-title">{armor.name}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               </>
-            )}
-
-            {characterType === 'follower' && !bringsEquipment && (
-              <div className="card">
-                <p className="text-muted text-center">
-                  This follower does not bring any equipment.
-                </p>
-              </div>
             )}
 
             {selectedEquipment.length > 0 && (
@@ -737,16 +844,19 @@ export function CharacterCreationWizard({
 
       case 'summary':
         const finalStats = computeFinalStats();
+        const armorScore = calculateArmorScore();
         return (
           <div>
             <h3 className="mb-lg">Character Summary</h3>
             
             <div className="card mb-lg">
               <div className="flex justify-between items-center mb-md">
-                <h4 className="text-gold">{name || 'Unnamed Hero'}</h4>
+                <h4 className="text-gold">{name || (characterType === 'hero' ? 'Unnamed Hero' : 'Unnamed Follower')}</h4>
                 <div className="flex gap-sm">
                   <span className="tag tag-gold">{selectedOrigin}</span>
-                  <span className="tag tag-copper">{selectedBackground}</span>
+                  {characterType === 'hero' && selectedBackground && (
+                    <span className="tag tag-copper">{selectedBackground}</span>
+                  )}
                 </div>
               </div>
 
@@ -770,6 +880,10 @@ export function CharacterCreationWizard({
                   <div className="stat-value">{finalStats.toughness}</div>
                   <div className="stat-label">Toughness</div>
                 </div>
+                <div className="stat-box">
+                  <div className="stat-value">{armorScore}</div>
+                  <div className="stat-label">Armor</div>
+                </div>
                 {isMystic && (
                   <div className="stat-box">
                     <div className="stat-value">{finalStats.casting}</div>
@@ -778,27 +892,31 @@ export function CharacterCreationWizard({
                 )}
               </div>
 
-              <div className="grid-2 mb-lg">
-                <div className="stat-box">
-                  <div className="stat-value">{finalStats.will}</div>
-                  <div className="stat-label">Will</div>
-                </div>
-                <div className="stat-box">
-                  <div className="stat-value">{finalStats.luck}</div>
-                  <div className="stat-label">Luck</div>
-                </div>
-              </div>
+              {characterType === 'hero' && (
+                <>
+                  <div className="grid-2 mb-lg">
+                    <div className="stat-box">
+                      <div className="stat-value">{finalStats.will}</div>
+                      <div className="stat-label">Will</div>
+                    </div>
+                    <div className="stat-box">
+                      <div className="stat-value">{finalStats.luck}</div>
+                      <div className="stat-label">Luck</div>
+                    </div>
+                  </div>
 
-              <div className="grid-2 mb-lg">
-                <div className="stat-box">
-                  <div className="stat-value">{bonusXP}</div>
-                  <div className="stat-label">Starting XP</div>
-                </div>
-                <div className="stat-box">
-                  <div className="stat-value">{gold}</div>
-                  <div className="stat-label">Gold</div>
-                </div>
-              </div>
+                  <div className="grid-2 mb-lg">
+                    <div className="stat-box">
+                      <div className="stat-value">{bonusXP}</div>
+                      <div className="stat-label">Starting XP</div>
+                    </div>
+                    <div className="stat-box">
+                      <div className="stat-value">{gold}</div>
+                      <div className="stat-label">Gold</div>
+                    </div>
+                  </div>
+                </>
+              )}
 
               {skillRolls.length > 0 && (
                 <>
@@ -835,6 +953,21 @@ export function CharacterCreationWizard({
 
   // Determine if we can proceed to the next step
   const canProceed = () => {
+    // For followers, simplified flow
+    if (characterType === 'follower') {
+      switch (currentStep) {
+        case 'name':
+          return true; // Name is optional
+        case 'equipment':
+          return true;
+        case 'summary':
+          return true;
+        default:
+          return true;
+      }
+    }
+    
+    // For heroes, full flow
     switch (currentStep) {
       case 'name':
         return true; // Name is optional

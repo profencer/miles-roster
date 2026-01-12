@@ -302,7 +302,9 @@ export function WarbandRoster() {
             <div>
               <div className="flex gap-sm mb-md">
                 <span className="tag tag-gold">{selectedCharacter.origin}</span>
-                <span className="tag tag-copper">{selectedCharacter.background}</span>
+                {selectedCharacter.characterType === 'hero' && (
+                  <span className="tag tag-copper">{selectedCharacter.background}</span>
+                )}
                 {selectedCharacter.isMystic && (
                   <span className="tag">Mystic</span>
                 )}
@@ -328,6 +330,22 @@ export function WarbandRoster() {
                   <div className="stat-value">{selectedCharacter.stats.toughness}</div>
                   <div className="stat-label">Toughness</div>
                 </div>
+                <div className="stat-box">
+                  <div className="stat-value">
+                    {(() => {
+                      let score = 0;
+                      selectedCharacter.equipment.forEach((item) => {
+                        if (item.name === 'Partial armor') score += 1;
+                        if (item.name === 'Light armor') score += 2;
+                        if (item.name === 'Full armor') score += 3;
+                        if (item.name === 'Helmet') score += 1;
+                        if (item.name === 'Shield') score += 1;
+                      });
+                      return score;
+                    })()}
+                  </div>
+                  <div className="stat-label">Armor</div>
+                </div>
                 {selectedCharacter.isMystic && (
                   <div className="stat-box">
                     <div className="stat-value">{selectedCharacter.stats.casting}</div>
@@ -336,16 +354,18 @@ export function WarbandRoster() {
                 )}
               </div>
 
-              <div className="grid-2 mb-lg">
-                <div className="stat-box">
-                  <div className="stat-value">{selectedCharacter.stats.will}</div>
-                  <div className="stat-label">Will</div>
+              {selectedCharacter.characterType === 'hero' && (
+                <div className="grid-2 mb-lg">
+                  <div className="stat-box">
+                    <div className="stat-value">{selectedCharacter.stats.will}</div>
+                    <div className="stat-label">Will</div>
+                  </div>
+                  <div className="stat-box">
+                    <div className="stat-value">{selectedCharacter.stats.luck}</div>
+                    <div className="stat-label">Luck</div>
+                  </div>
                 </div>
-                <div className="stat-box">
-                  <div className="stat-value">{selectedCharacter.stats.luck}</div>
-                  <div className="stat-label">Luck</div>
-                </div>
-              </div>
+              )}
 
               {selectedCharacter.skills.length > 0 && (
                 <>

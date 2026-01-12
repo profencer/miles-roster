@@ -6,14 +6,29 @@ interface CharacterCardProps {
   onDelete: () => void;
 }
 
+// Calculate armor score from equipment
+function calculateArmorScore(equipment: Character['equipment']): number {
+  let score = 0;
+  equipment.forEach((item) => {
+    if (item.name === 'Partial armor') score += 1;
+    if (item.name === 'Light armor') score += 2;
+    if (item.name === 'Full armor') score += 3;
+    if (item.name === 'Helmet') score += 1;
+    if (item.name === 'Shield') score += 1;
+  });
+  return score;
+}
+
 export function CharacterCard({ character, onView, onDelete }: CharacterCardProps) {
+  const armorScore = calculateArmorScore(character.equipment);
+  
   return (
     <div className="character-card">
       <div className="character-card-header">
         <div>
           <h4 className="character-name">{character.name}</h4>
           <p className="character-subtitle">
-            {character.origin} {character.background}
+            {character.origin} {character.characterType === 'hero' ? character.background : ''}
           </p>
         </div>
         <span className="tag tag-gold">
@@ -29,7 +44,7 @@ export function CharacterCard({ character, onView, onDelete }: CharacterCardProp
           </div>
           <div className="stat-box">
             <div className="stat-value">{character.stats.combatSkill}</div>
-            <div className="stat-label">CS</div>
+            <div className="stat-label">Combat</div>
           </div>
           <div className="stat-box">
             <div className="stat-value">{character.stats.speedBase}</div>
@@ -38,6 +53,10 @@ export function CharacterCard({ character, onView, onDelete }: CharacterCardProp
           <div className="stat-box">
             <div className="stat-value">{character.stats.toughness}</div>
             <div className="stat-label">TGH</div>
+          </div>
+          <div className="stat-box">
+            <div className="stat-value">{armorScore}</div>
+            <div className="stat-label">Armor</div>
           </div>
         </div>
 
